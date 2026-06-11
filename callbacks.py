@@ -151,16 +151,16 @@ def register(app) -> None:
         # Step 2: Apply single date filter for general metrics/charts
         df_single = df[df["DATE"] == selected_date_obj]
 
-        # Step 3: Apply 10-day range filter for time graphs (max 10 days leading to selected_date)
-        start_date_obj = selected_date_obj - pd.Timedelta(days=9)
-        df_10days = df[(df["DATE"] >= start_date_obj) & (df["DATE"] <= selected_date_obj)]
+        # Step 3: Apply filter for selected and last 10 days (total 11 days leading to selected_date)
+        start_date_obj = selected_date_obj - pd.Timedelta(days=10)
+        df_trend = df[(df["DATE"] >= start_date_obj) & (df["DATE"] <= selected_date_obj)]
 
         # Step 4: Build each component
         kpi     = build_kpi_cards(df_single)
         pie     = build_pie_chart(df_single)
         dur     = build_duration_chart(df_single)
-        failed  = build_failed_chart(df_10days)
-        ts      = build_timeseries_chart(df_10days)
+        failed  = build_failed_chart(df_trend)
+        ts      = build_timeseries_chart(df_trend)
         monitor = build_monitor_chart(df_single)
         root    = build_failure_root_chart(df_single)
 
