@@ -118,29 +118,22 @@ def register(app) -> None:
             Output("failure_root_chart", "figure"),
         ],
         [
-            Input("start_date",    "date"),
-            Input("end_date",      "date"),
+            Input("selected_date", "date"),
             Input("refresh_timer", "n_intervals"),
         ],
     )
-    def update_dashboard(start_date, end_date, _refresh):
+    def update_dashboard(selected_date, _refresh):
         """
         Reload data and rebuild all charts whenever:
-          - The user selects a new date range
+          - The user selects a new date
           - The auto-refresh timer fires (every 60 seconds)
-
-        This means the dashboard always shows up-to-date data without
-        the user having to restart the app manually.
 
         Parameters
         ----------
-        start_date : str | None
-            ISO date string from the start date picker (e.g. "2026-06-08")
-        end_date : str | None
-            ISO date string from the end date picker
+        selected_date : str | None
+            ISO date string from the date picker (e.g. "2026-06-11")
         _refresh : int
             Number of times the auto-refresh interval has fired
-            (we don't use the value — it just triggers the callback)
 
         Returns
         -------
@@ -150,91 +143,113 @@ def register(app) -> None:
         # Step 1: Reload CSVs (picks up any changes since last refresh)
         df = load_all_reports()
 
-        # Step 2: Apply date range filter
-        if start_date and end_date:
-            start = pd.to_datetime(start_date).date()
-            end   = pd.to_datetime(end_date).date()
-            df = df[(df["DATE"] >= start) & (df["DATE"] <= end)]
+        if not selected_date:
+            selected_date = str(df["DATE"].dropna().max())
 
-        # Step 4: Build each component from the filtered data
-        kpi     = build_kpi_cards(df)
-        pie     = build_pie_chart(df)
-        dur     = build_duration_chart(df)
-        failed  = build_failed_chart(df)
-        ts      = build_timeseries_chart(df)
-        monitor = build_monitor_chart(df)
-        root    = build_failure_root_chart(df)
+        selected_date_obj = pd.to_datetime(selected_date).date()
+
+        # Step 2: Apply single date filter for general metrics/charts
+        df_single = df[df["DATE"] == selected_date_obj]
+
+        # Step 3: Apply 10-day range filter for time graphs (max 10 days leading to selected_date)
+        start_date_obj = selected_date_obj - pd.Timedelta(days=9)
+        df_10days = df[(df["DATE"] >= start_date_obj) & (df["DATE"] <= selected_date_obj)]
+
+        # Step 4: Build each component
+        kpi     = build_kpi_cards(df_single)
+        pie     = build_pie_chart(df_single)
+        dur     = build_duration_chart(df_single)
+        failed  = build_failed_chart(df_10days)
+        ts      = build_timeseries_chart(df_10days)
+        monitor = build_monitor_chart(df_single)
+        root    = build_failure_root_chart(df_single)
 
         return kpi, pie, dur, failed, ts, monitor, root
 
 
     # ==============================================================
-    # CALLBACK 2 — Table Button Toggle
+    # CALLBACK 2 — Update Active Table Type
     # ==============================================================
     @app.callback(
-        Output("dynamic_table", "children"),
+        Output("active_table_type", "data"),
         [
             Input("btn_new",     "n_clicks"),
             Input("btn_updated", "n_clicks"),
             Input("btn_full",    "n_clicks"),
         ],
+        prevent_initial_call=True
     )
-    def show_table(new_clicks, updated_clicks, full_clicks):
+    def update_active_table(new_clicks, updated_clicks, full_clicks):
         """
-        Show a data table when the user clicks one of the three buttons.
+        Track which button was clicked and update the active_table_type store.
+        """
+        ctx = callback_context
+        if not ctx.triggered:
+            return ""
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        return button_id
 
-        Dash's `callback_context` tells us *which* button was clicked
-        most recently, so we can show the right table.
 
-        Button mapping:
-          • btn_new     → NEW TESTS    (columns: Date, Test ID, Name, Status, Duration)
-          • btn_updated → UPDATED TESTS (columns: Date, Updated At, Test ID, Name, Status)
-          • btn_full    → FULL DATASET  (all columns, all rows)
+    # ==============================================================
+    # CALLBACK 3 — Table Rendering
+    # ==============================================================
+    @app.callback(
+        Output("dynamic_table", "children"),
+        [
+            Input("active_table_type", "data"),
+            Input("selected_date", "date"),
+            Input("refresh_timer", "n_intervals"),
+        ],
+    )
+    def show_table(active_table, selected_date, _refresh):
+        """
+        Show/update the data table based on the active table type and selected date.
 
         Parameters
         ----------
-        new_clicks, updated_clicks, full_clicks : int
-            Click counts for each button (Dash passes these automatically)
+        active_table : str
+            The active table component ID (btn_new, btn_updated, btn_full) from dcc.Store
+        selected_date : str | None
+            ISO date string from the date picker
+        _refresh : int
+            Auto-refresh trigger
 
         Returns
         -------
-        dash.dash_table.DataTable | str
-            A DataTable component, or an empty string if no button has
-            been clicked yet (initial load).
+        dash.html.Div | str
+            A styled container with the DataTable, or empty string.
         """
-        ctx = callback_context
-
-        # On initial load, no button has been clicked — hide the table
-        if not ctx.triggered:
+        if not active_table:
             return ""
-
-        # Identify which button was clicked
-        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
         # Reload the latest data
         df = load_all_reports()
 
-        # Select the right columns based on which button was clicked
-        if button_id == "btn_new":
-            # Show basic new test info
-            cols = ["DATE", "TEST ID", "TEST NAME", "STATUS", "DURATION (S)"]
-            # Only keep columns that actually exist (some CSVs may differ)
-            cols = [c for c in cols if c in df.columns]
-            table_df = df[cols]
-            title = "🆕 New Tests"
+        if not selected_date:
+            selected_date = str(df["DATE"].dropna().max())
+        selected_date_obj = pd.to_datetime(selected_date).date()
 
-        elif button_id == "btn_updated":
-            # Show tests that have an UPDATED AT timestamp
-            table_df = df[df["UPDATED AT"].notna()]
+        # Filter the dataset for the selected date
+        df_filtered = df[df["DATE"] == selected_date_obj]
+
+        # Select the right columns based on which button was clicked
+        if active_table == "btn_new":
+            cols = ["DATE", "TEST ID", "TEST NAME", "STATUS", "DURATION (S)"]
+            cols = [c for c in cols if c in df_filtered.columns]
+            table_df = df_filtered[cols]
+            title = f"🆕 New Tests (Selected Date: {selected_date_obj})"
+
+        elif active_table == "btn_updated":
+            # Show tests that have an UPDATED AT timestamp on selected date
+            table_df = df_filtered[df_filtered["UPDATED AT"].notna()]
             cols = ["DATE", "UPDATED AT", "TEST ID", "TEST NAME", "STATUS"]
             cols = [c for c in cols if c in table_df.columns]
             table_df = table_df[cols]
-            title = "✏️ Updated Tests"
+            title = f"✏️ Updated Tests (Selected Date: {selected_date_obj})"
 
         else:
-            # Full dataset — all columns
-            table_df = df.copy()
-            title = "📋 Full Dataset"
+            table_df = df_filtered.copy()
+            title = f"📋 Full Dataset (Selected Date: {selected_date_obj})"
 
         # Convert datetime columns to readable strings for display
         for col in ["DATE", "UPDATED AT", "UPDATED DATE", "CREATED AT"]:
@@ -260,8 +275,8 @@ def register(app) -> None:
                     columns=[{"name": col, "id": col} for col in table_df.columns],
                     data=table_df.to_dict("records"),
                     page_size=TABLE_PAGE_SIZE,
-                    filter_action="native",    # Users can type to filter rows
-                    sort_action="native",      # Users can click headers to sort
+                    filter_action="native",
+                    sort_action="native",
                     style_table=TABLE_CONTAINER_STYLE,
                     style_header=TABLE_HEADER_STYLE,
                     style_cell=TABLE_CELL_STYLE,

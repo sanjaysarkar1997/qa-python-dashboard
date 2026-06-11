@@ -52,9 +52,10 @@ _BASE_LAYOUT = dict(
     plot_bgcolor="rgba(0,0,0,0)",
     margin=dict(l=30, r=30, t=55, b=30),
     hoverlabel=dict(
-        bgcolor="white",
-        bordercolor="#dfe6e9",
-        font=dict(family="Inter, Segoe UI, sans-serif", size=13, color="#2d3436"),
+        bgcolor="#1e293b",
+        bordercolor="#334155",
+        font=dict(family="Inter, Segoe UI, sans-serif", size=13, color="#cbd5e1"),
+        align="left",
     ),
 )
 
@@ -230,9 +231,9 @@ def build_pie_chart(df: pd.DataFrame) -> go.Figure:
                 textinfo="label+value+percent",
                 textfont=dict(size=12),
                 hovertemplate=(
-                    "<b>%{label}</b><br>"
-                    "Count: %{value:,}<br>"
-                    "Share: %{percent}<extra></extra>"
+                    "<span style='font-size: 14px; font-weight: bold; color: #38bdf8;'>%{label}</span><br>"
+                    "<span style='color: #94a3b8;'>Count:</span> <b>%{value:,}</b><br>"
+                    "<span style='color: #94a3b8;'>Share:</span> <b>%{percent}</b><extra></extra>"
                 ),
                 # Pull the largest slice slightly outward for emphasis
                 pull=[0.04 if i == pie_df["COUNT"].idxmax() else 0
@@ -294,7 +295,10 @@ def build_duration_chart(df: pd.DataFrame) -> go.Figure:
         textposition="outside",
         textfont=dict(size=12, color="#2d3436"),
         marker_line_width=0,
-        hovertemplate="<b>%{x}</b><br>Tests: %{y:,}<extra></extra>",
+        hovertemplate=(
+            "<span style='font-size: 14px; font-weight: bold; color: #38bdf8;'>%{x}</span><br>"
+            "<span style='color: #94a3b8;'>Tests:</span> <b>%{y:,}</b><extra></extra>"
+        ),
     )
 
     fig.update_coloraxes(showscale=False)  # Hide the colour legend bar
@@ -346,7 +350,10 @@ def build_failed_chart(df: pd.DataFrame) -> go.Figure:
         textposition="outside",
         textfont=dict(size=12, color="#2d3436"),
         marker_line_width=0,
-        hovertemplate="<b>%{x}</b><br>Failed: %{y:,}<extra></extra>",
+        hovertemplate=(
+            "<span style='font-size: 14px; font-weight: bold; color: #f87171;'>%{x}</span><br>"
+            "<span style='color: #94a3b8;'>Failed:</span> <b>%{y:,}</b><extra></extra>"
+        ),
     )
 
     fig.update_coloraxes(showscale=False)
@@ -413,7 +420,10 @@ def build_timeseries_chart(df: pd.DataFrame) -> go.Figure:
             fill="tozeroy",
             fillcolor="rgba(9,132,227,0.08)",
             marker=dict(size=7, color="#0984e3"),
-            hovertemplate="<b>%{x}</b><br>Total tests: %{y:,}<extra></extra>",
+            hovertemplate=(
+                "<span style='font-size: 14px; font-weight: bold; color: #38bdf8;'>%{x}</span><br>"
+                "<span style='color: #94a3b8;'>Total Tests:</span> <b>%{y:,}</b><extra></extra>"
+            ),
         )
     )
 
@@ -426,7 +436,10 @@ def build_timeseries_chart(df: pd.DataFrame) -> go.Figure:
             name="New Tests (Daily)",
             line=dict(color="#00b894", width=2.5, shape="spline", dash="dot"),
             marker=dict(size=7, color="#00b894"),
-            hovertemplate="<b>%{x}</b><br>New tests: %{y:,}<extra></extra>",
+            hovertemplate=(
+                "<span style='font-size: 14px; font-weight: bold; color: #34d399;'>%{x}</span><br>"
+                "<span style='color: #94a3b8;'>New Tests:</span> <b>%{y:,}</b><extra></extra>"
+            ),
         )
     )
 
@@ -440,7 +453,10 @@ def build_timeseries_chart(df: pd.DataFrame) -> go.Figure:
                 name="Updated Tests (Daily)",
                 line=dict(color="#e17055", width=2.5, shape="spline", dash="dash"),
                 marker=dict(size=7, color="#e17055"),
-                hovertemplate="<b>%{x}</b><br>Updated: %{y:,}<extra></extra>",
+                hovertemplate=(
+                    "<span style='font-size: 14px; font-weight: bold; color: #fb923c;'>%{x}</span><br>"
+                    "<span style='color: #94a3b8;'>Updated Tests:</span> <b>%{y:,}</b><extra></extra>"
+                ),
             )
         )
 
@@ -526,7 +542,11 @@ def build_monitor_chart(df: pd.DataFrame) -> go.Figure:
     fig.update_traces(
         textposition="inside",
         textfont=dict(size=12, color="white"),
-        hovertemplate="<b>%{x}</b> — %{fullData.name}<br>Count: %{y:,}<extra></extra>",
+        hovertemplate=(
+            "<span style='font-size: 14px; font-weight: bold; color: #38bdf8;'>%{x}</span><br>"
+            "<span style='color: #94a3b8;'>Status:</span> <b>%{fullData.name}</b><br>"
+            "<span style='color: #94a3b8;'>Count:</span> <b>%{y:,}</b><extra></extra>"
+        ),
     )
 
     fig = _apply_base_layout(
@@ -609,9 +629,9 @@ def build_failure_root_chart(df: pd.DataFrame) -> go.Figure:
                 textinfo="label+value+percent",
                 textfont=dict(size=11),
                 hovertemplate=(
-                    "<b>%{label}</b><br>"
-                    "Failures: %{value:,}<br>"
-                    "Share: %{percent}<extra></extra>"
+                    "<span style='font-size: 14px; font-weight: bold; color: #f87171;'>%{label}</span><br>"
+                    "<span style='color: #94a3b8;'>Failures:</span> <b>%{value:,}</b><br>"
+                    "<span style='color: #94a3b8;'>Share:</span> <b>%{percent}</b><extra></extra>"
                 ),
             )
         ]

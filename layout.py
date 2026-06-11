@@ -186,6 +186,7 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                 interval=REFRESH_INTERVAL_MS,
                 n_intervals=0,
             ),
+            dcc.Store(id="active_table_type", data=""),
 
             # ----------------------------------------------------------
             # SECTION 1 — HERO HEADER
@@ -229,11 +230,11 @@ def create_layout(df: pd.DataFrame) -> html.Div:
             # ----------------------------------------------------------
             html.Div(
                 [
-                    # Date — From
+                    # Date Selection
                     html.Div(
                         [
                             html.Label(
-                                "FROM DATE",
+                                "SELECT DATE",
                                 style={
                                     "fontSize":      "11px",
                                     "fontWeight":    "700",
@@ -245,31 +246,7 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                                 },
                             ),
                             dcc.DatePickerSingle(
-                                id="start_date",
-                                date=min_date,
-                                display_format="DD MMM YYYY",
-                                style={"width": "100%"},
-                            ),
-                        ],
-                        style={"flex": "1"},
-                    ),
-                    # Date — To
-                    html.Div(
-                        [
-                            html.Label(
-                                "TO DATE",
-                                style={
-                                    "fontSize":      "11px",
-                                    "fontWeight":    "700",
-                                    "letterSpacing": "1.5px",
-                                    "color":         "#636e72",
-                                    "marginBottom":  "8px",
-                                    "display":       "block",
-                                    "fontFamily":    FONT_FAMILY,
-                                },
-                            ),
-                            dcc.DatePickerSingle(
-                                id="end_date",
+                                id="selected_date",
                                 date=max_date,
                                 display_format="DD MMM YYYY",
                                 style={"width": "100%"},
@@ -291,7 +268,16 @@ def create_layout(df: pd.DataFrame) -> html.Div:
             # ----------------------------------------------------------
             # SECTION 3 — KPI CARDS (filled by callback)
             # ----------------------------------------------------------
-            html.Div(id="kpi_cards", style={"marginBottom": SECTION_GAP}),
+            # ----------------------------------------------------------
+            # ----------------------------------------------------------
+            # SECTION 3 — KPI CARDS (wrapped in Loading)
+            # ----------------------------------------------------------
+            dcc.Loading(
+                id="loading-kpis",
+                type="circle",
+                color="#0984e3",
+                children=html.Div(id="kpi_cards", style={"marginBottom": SECTION_GAP}),
+            ),
 
             # ----------------------------------------------------------
             # SECTION 4 — ROW 1: Status Distribution + Duration
@@ -299,8 +285,28 @@ def create_layout(df: pd.DataFrame) -> html.Div:
             _section_header("Overview"),
             html.Div(
                 [
-                    html.Div([dcc.Graph(id="pie_chart")],      style=HALF_CARD_STYLE),
-                    html.Div([dcc.Graph(id="duration_chart")], style=HALF_CARD_STYLE),
+                    html.Div(
+                        [
+                            dcc.Loading(
+                                id="loading-pie",
+                                type="circle",
+                                color="#0984e3",
+                                children=dcc.Graph(id="pie_chart"),
+                            )
+                        ],
+                        style=HALF_CARD_STYLE,
+                    ),
+                    html.Div(
+                        [
+                            dcc.Loading(
+                                id="loading-duration",
+                                type="circle",
+                                color="#0984e3",
+                                children=dcc.Graph(id="duration_chart"),
+                            )
+                        ],
+                        style=HALF_CARD_STYLE,
+                    ),
                 ],
                 style=ROW_STYLE,
             ),
@@ -311,8 +317,28 @@ def create_layout(df: pd.DataFrame) -> html.Div:
             _section_header("Failure & Trend Analysis"),
             html.Div(
                 [
-                    html.Div([dcc.Graph(id="failed_chart")],     style=HALF_CARD_STYLE),
-                    html.Div([dcc.Graph(id="timeseries_chart")], style=HALF_CARD_STYLE),
+                    html.Div(
+                        [
+                            dcc.Loading(
+                                id="loading-failed",
+                                type="circle",
+                                color="#0984e3",
+                                children=dcc.Graph(id="failed_chart"),
+                            )
+                        ],
+                        style=HALF_CARD_STYLE,
+                    ),
+                    html.Div(
+                        [
+                            dcc.Loading(
+                                id="loading-timeseries",
+                                type="circle",
+                                color="#0984e3",
+                                children=dcc.Graph(id="timeseries_chart"),
+                            )
+                        ],
+                        style=HALF_CARD_STYLE,
+                    ),
                 ],
                 style=ROW_STYLE,
             ),
@@ -323,8 +349,28 @@ def create_layout(df: pd.DataFrame) -> html.Div:
             _section_header("Monitor Priority & Root Cause"),
             html.Div(
                 [
-                    html.Div([dcc.Graph(id="monitor_chart")],      style=HALF_CARD_STYLE),
-                    html.Div([dcc.Graph(id="failure_root_chart")], style=HALF_CARD_STYLE),
+                    html.Div(
+                        [
+                            dcc.Loading(
+                                id="loading-monitor",
+                                type="circle",
+                                color="#0984e3",
+                                children=dcc.Graph(id="monitor_chart"),
+                            )
+                        ],
+                        style=HALF_CARD_STYLE,
+                    ),
+                    html.Div(
+                        [
+                            dcc.Loading(
+                                id="loading-failure-root",
+                                type="circle",
+                                color="#0984e3",
+                                children=dcc.Graph(id="failure_root_chart"),
+                            )
+                        ],
+                        style=HALF_CARD_STYLE,
+                    ),
                 ],
                 style=ROW_STYLE,
             ),
@@ -348,9 +394,14 @@ def create_layout(df: pd.DataFrame) -> html.Div:
             ),
 
             # ----------------------------------------------------------
-            # SECTION 9 — DYNAMIC TABLE (filled by callback)
+            # SECTION 9 — DYNAMIC TABLE (filled by callback, wrapped in Loading)
             # ----------------------------------------------------------
-            html.Div(id="dynamic_table"),
+            dcc.Loading(
+                id="loading-table",
+                type="circle",
+                color="#0984e3",
+                children=html.Div(id="dynamic_table"),
+            ),
 
         ],
         style={
