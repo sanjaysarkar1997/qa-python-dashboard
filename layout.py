@@ -23,7 +23,6 @@ import pandas as pd
 from dash import dcc, html, dash_table
 
 from config import (
-    REFRESH_INTERVAL_MS,
     TABLE_PAGE_SIZE,
     STATUS_COLORS,
     FONT_FAMILY,
@@ -176,16 +175,6 @@ def create_layout(df: pd.DataFrame) -> html.Div:
 
     return html.Div(
         [
-            # ----------------------------------------------------------
-            # AUTO-REFRESH INTERVAL TIMER
-            # ----------------------------------------------------------
-            # Every REFRESH_INTERVAL_MS milliseconds, this fires the
-            # dashboard callback to reload the CSV files.
-            dcc.Interval(
-                id="refresh_timer",
-                interval=REFRESH_INTERVAL_MS,
-                n_intervals=0,
-            ),
             dcc.Store(id="active_table_type", data=""),
 
             # ----------------------------------------------------------
@@ -206,7 +195,7 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                         },
                     ),
                     html.P(
-                        "Test execution analytics — auto-refreshes every 60 seconds",
+                        "Test execution analytics",
                         style={
                             "margin":     "0",
                             "fontSize":   "13px",
@@ -382,6 +371,7 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                 [
                     _action_button("🆕  View New Tests",     "btn_new",     "#00b894"),
                     _action_button("✏️  View Updated Tests", "btn_updated", "#e17055"),
+                    _action_button("❌  View Failed Tests",  "btn_failed",  "#d63031"),
                     _action_button("📋  Full Dataset",       "btn_full",    "#0984e3"),
                 ],
                 style={

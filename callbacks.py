@@ -119,21 +119,17 @@ def register(app) -> None:
         ],
         [
             Input("selected_date", "date"),
-            Input("refresh_timer", "n_intervals"),
         ],
     )
-    def update_dashboard(selected_date, _refresh):
+    def update_dashboard(selected_date):
         """
         Reload data and rebuild all charts whenever:
           - The user selects a new date
-          - The auto-refresh timer fires (every 60 seconds)
 
         Parameters
         ----------
         selected_date : str | None
             ISO date string from the date picker (e.g. "2026-06-11")
-        _refresh : int
-            Number of times the auto-refresh interval has fired
 
         Returns
         -------
@@ -175,11 +171,12 @@ def register(app) -> None:
         [
             Input("btn_new",     "n_clicks"),
             Input("btn_updated", "n_clicks"),
+            Input("btn_failed",  "n_clicks"),
             Input("btn_full",    "n_clicks"),
         ],
         prevent_initial_call=True
     )
-    def update_active_table(new_clicks, updated_clicks, full_clicks):
+    def update_active_table(new_clicks, updated_clicks, failed_clicks, full_clicks):
         """
         Track which button was clicked and update the active_table_type store.
         """
@@ -198,10 +195,9 @@ def register(app) -> None:
         [
             Input("active_table_type", "data"),
             Input("selected_date", "date"),
-            Input("refresh_timer", "n_intervals"),
         ],
     )
-    def show_table(active_table, selected_date, _refresh):
+    def show_table(active_table, selected_date):
         """
         Show/update the data table based on the active table type and selected date.
 
@@ -211,8 +207,6 @@ def register(app) -> None:
             The active table component ID (btn_new, btn_updated, btn_full) from dcc.Store
         selected_date : str | None
             ISO date string from the date picker
-        _refresh : int
-            Auto-refresh trigger
 
         Returns
         -------
@@ -246,6 +240,14 @@ def register(app) -> None:
             cols = [c for c in cols if c in table_df.columns]
             table_df = table_df[cols]
             title = f"✏️ Updated Tests (Selected Date: {selected_date_obj})"
+
+        elif active_table == "btn_failed":
+            # Show tests that have STATUS as FAIL on selected date
+            table_df = df_filtered[df_filtered["STATUS"].astype(str).str.contains("FAIL", na=False)]
+            cols = ["DATE", "TEST ID", "TEST NAME", "STATUS", "DURATION (S)", "MONITOR STATUS", "FAILURE ROOT CAUSE"]
+            cols = [c for c in cols if c in table_df.columns]
+            table_df = table_df[cols]
+            title = f"❌ Failed Tests (Selected Date: {selected_date_obj})"
 
         else:
             table_df = df_filtered.copy()
