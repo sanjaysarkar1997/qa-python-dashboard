@@ -54,7 +54,7 @@ _BASE_LAYOUT = dict(
     hoverlabel=dict(
         bgcolor="white",
         bordercolor="#dfe6e9",
-        font_size=13,
+        font=dict(family="Inter, Segoe UI, sans-serif", size=13, color="#2d3436"),
     ),
 )
 
@@ -388,13 +388,17 @@ def build_timeseries_chart(df: pd.DataFrame) -> go.Figure:
     """
     # Daily total tests
     daily_total = df.groupby("DATE").size().reset_index(name="DAILY TESTS")
+    all_dates = daily_total["DATE"]
 
-    # New tests per day (same as daily count)
-    new_tests = df.groupby("DATE").size().reset_index(name="NEW TESTS")
+    # New tests per day (records where CREATED AT date matches the execution DATE)
+    new_df = df[df["CREATED AT"].dt.date == df["DATE"]]
+    new_counts = new_df.groupby("DATE").size()
+    new_tests = new_counts.reindex(all_dates, fill_value=0).reset_index(name="NEW TESTS")
 
-    # Updated tests per day (records that have a non-null UPDATED AT)
-    updated_df = df[df["UPDATED AT"].notna()]
-    updated_tests = updated_df.groupby("DATE").size().reset_index(name="UPDATED TESTS")
+    # Updated tests per day (records where UPDATED AT date matches the execution DATE)
+    updated_df = df[df["UPDATED AT"].dt.date == df["DATE"]]
+    updated_counts = updated_df.groupby("DATE").size()
+    updated_tests = updated_counts.reindex(all_dates, fill_value=0).reset_index(name="UPDATED TESTS")
 
     fig = go.Figure()
 

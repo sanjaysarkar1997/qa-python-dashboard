@@ -240,12 +240,18 @@ def _parse_dates(df: pd.DataFrame) -> pd.DataFrame:
     -------
     pd.DataFrame
     """
-    date_columns = ["START TIME", "STOP TIME", "UPDATED AT", "CREATED AT"]
-
-    for col in date_columns:
+    # START TIME and STOP TIME use day-first format (e.g., "11 Jun 2026")
+    for col in ["START TIME", "STOP TIME"]:
         if col in df.columns:
             df[col] = pd.to_datetime(
                 df[col], errors="coerce", dayfirst=True, format="mixed"
+            )
+
+    # UPDATED AT and CREATED AT use YYYY-MM-DD format, so dayfirst=False
+    for col in ["UPDATED AT", "CREATED AT"]:
+        if col in df.columns:
+            df[col] = pd.to_datetime(
+                df[col], errors="coerce", dayfirst=False, format="mixed"
             )
 
     # Remove rows where START TIME could not be parsed (they have no date)
