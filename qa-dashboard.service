@@ -1,0 +1,20 @@
+[Unit]
+Description=QA Analytics Dashboard Service
+After=network.target
+
+[Service]
+# Change User to the system user that runs the application
+User=sanjay
+WorkingDirectory=/home/sanjay/Desktop/infocus/qa-python-dashboard
+
+# Load path to local virtual environment and environment variables
+Environment="PATH=/home/sanjay/Desktop/infocus/qa-python-dashboard/.venv/bin"
+Environment="QA_DASHBOARD_PORT=8052"
+Environment="QA_DASHBOARD_DEBUG=False"
+
+# Run using gunicorn (binds to all interfaces on port 8052 with 3 worker processes)
+ExecStart=/home/sanjay/Desktop/infocus/qa-python-dashboard/.venv/bin/gunicorn --workers 3 --bind 0.0.0.0:8052 wsgi:server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

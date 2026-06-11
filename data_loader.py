@@ -36,15 +36,15 @@ from config import (
 # Status column (e.g. "✅ Passed", "❌ Failed").  We normalise these
 # to plain uppercase keywords that the dashboard understands.
 EMOJI_STATUS_MAP = {
-    "✅ PASSED":  "PASS",
-    "❌ FAILED":  "FAIL",
+    "✅ PASSED": "PASS",
+    "❌ FAILED": "FAIL",
     "⏭️ SKIPPED": "SKIPPED",
-    "⚠️ BROKEN":  "BROKEN",
+    "⚠️ BROKEN": "BROKEN",
     # Also handle plain text variants (older CSVs / manual entries)
-    "PASSED":     "PASS",
-    "FAILED":     "FAIL",
-    "SUCCESS":    "PASS",
-    "ERROR":      "FAIL",
+    "PASSED": "PASS",
+    "FAILED": "FAIL",
+    "SUCCESS": "PASS",
+    "ERROR": "FAIL",
 }
 
 
@@ -136,14 +136,14 @@ def _add_missing_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     # Maps column name → default value when the column is missing
     optional_columns = {
-        "MONITOR STATUS":     "NORMAL",
-        "FAILURE ROOT CAUSE": "—",          # em-dash = not applicable
-        "UPDATED AT":         pd.NaT,
-        "CREATED AT":         pd.NaT,
-        "TEST TYPE":          "UNKNOWN",
-        "FEATURE AREA":       "UNKNOWN",
-        "SEVERITY":           "NORMAL",
-        "TAGS":               "",
+        "MONITOR STATUS": "NORMAL",
+        "FAILURE ROOT CAUSE": "—",  # em-dash = not applicable
+        "UPDATED AT": pd.NaT,
+        "CREATED AT": pd.NaT,
+        "TEST TYPE": "UNKNOWN",
+        "FEATURE AREA": "UNKNOWN",
+        "SEVERITY": "NORMAL",
+        "TAGS": "",
     }
 
     for col, default in optional_columns.items():
@@ -217,6 +217,7 @@ def _clean_monitor_status(df: pd.DataFrame) -> pd.DataFrame:
     # Strip any leading emoji characters (e.g. "⚠️ HIGH" → "HIGH")
     # by keeping only alphanumeric + spaces after stripping unicode symbols
     import re
+
     df["MONITOR STATUS"] = df["MONITOR STATUS"].apply(
         lambda x: re.sub(r"[^\w\s]", "", x).strip()
     )
@@ -280,8 +281,8 @@ def _clean_duration(df: pd.DataFrame) -> pd.DataFrame:
     df["DURATION (S)"] = (
         df["DURATION (S)"]
         .astype(str)
-        .str.replace("s", "", regex=False)    # Remove trailing " s"
-        .str.replace(",", "", regex=False)    # Remove thousands separator
+        .str.replace("s", "", regex=False)  # Remove trailing " s"
+        .str.replace(",", "", regex=False)  # Remove thousands separator
         .str.strip()
     )
 
@@ -329,7 +330,9 @@ def load_all_reports() -> pd.DataFrame:
         try:
             frame = _load_single_csv(path)
             frames.append(frame)
-            print(f"[data_loader]   Loaded {len(frame):,} rows from {os.path.basename(path)}")
+            print(
+                f"[data_loader]   Loaded {len(frame):,} rows from {os.path.basename(path)}"
+            )
         except Exception as exc:
             # Log the error but continue — don't crash on one bad file
             print(f"[data_loader]   ⚠ Skipped {os.path.basename(path)}: {exc}")
