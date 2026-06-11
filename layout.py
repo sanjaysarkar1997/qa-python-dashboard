@@ -35,18 +35,18 @@ from config import (
 # Define reusable style dictionaries here so the layout stays DRY
 # (Don't Repeat Yourself).  Change a value once and it updates everywhere.
 
-PAGE_BG       = "linear-gradient(135deg, #f0f4ff 0%, #e8eef9 100%)"
-CARD_BG       = "white"
-CARD_RADIUS   = "16px"
-CARD_SHADOW   = "0 2px 12px rgba(0,0,0,0.07)"
-CARD_PADDING  = "16px"
-SECTION_GAP   = "16px"
+PAGE_BG = "linear-gradient(135deg, #f0f4ff 0%, #e8eef9 100%)"
+CARD_BG = "white"
+CARD_RADIUS = "16px"
+CARD_SHADOW = "0 2px 12px rgba(0,0,0,0.07)"
+CARD_PADDING = "16px"
+SECTION_GAP = "16px"
 
 CARD_STYLE = {
     "backgroundColor": CARD_BG,
-    "borderRadius":    CARD_RADIUS,
-    "boxShadow":       CARD_SHADOW,
-    "padding":         CARD_PADDING,
+    "borderRadius": CARD_RADIUS,
+    "boxShadow": CARD_SHADOW,
+    "padding": CARD_PADDING,
 }
 
 HALF_CARD_STYLE = {
@@ -60,16 +60,17 @@ FULL_CARD_STYLE = {
 }
 
 ROW_STYLE = {
-    "display":        "flex",
+    "display": "flex",
     "justifyContent": "space-between",
-    "gap":            SECTION_GAP,
-    "marginBottom":   SECTION_GAP,
+    "gap": SECTION_GAP,
+    "marginBottom": SECTION_GAP,
 }
 
 
 # ------------------------------------------------------------------
 # HELPER — Section header
 # ------------------------------------------------------------------
+
 
 def _section_header(title: str) -> html.Div:
     """
@@ -87,13 +88,13 @@ def _section_header(title: str) -> html.Div:
     return html.Div(
         title.upper(),
         style={
-            "fontSize":      "11px",
-            "fontWeight":    "700",
+            "fontSize": "11px",
+            "fontWeight": "700",
             "letterSpacing": "2px",
-            "color":         "#a0aec0",
-            "marginBottom":  "8px",
-            "paddingLeft":   "4px",
-            "fontFamily":    FONT_FAMILY,
+            "color": "#a0aec0",
+            "marginBottom": "8px",
+            "paddingLeft": "4px",
+            "fontFamily": FONT_FAMILY,
         },
     )
 
@@ -101,6 +102,7 @@ def _section_header(title: str) -> html.Div:
 # ------------------------------------------------------------------
 # HELPER — Action button
 # ------------------------------------------------------------------
+
 
 def _action_button(label: str, btn_id: str, color: str) -> html.Button:
     """
@@ -125,17 +127,17 @@ def _action_button(label: str, btn_id: str, color: str) -> html.Button:
         n_clicks=0,
         style={
             "backgroundColor": color,
-            "color":           "white",
-            "border":          "none",
-            "padding":         "12px 24px",
-            "borderRadius":    "50px",
-            "cursor":          "pointer",
-            "fontWeight":      "600",
-            "fontSize":        "13px",
-            "letterSpacing":   "0.5px",
-            "fontFamily":      FONT_FAMILY,
-            "boxShadow":       f"0 4px 14px {color}55",
-            "transition":      "opacity 0.2s ease, transform 0.15s ease",
+            "color": "white",
+            "border": "none",
+            "padding": "12px 24px",
+            "borderRadius": "50px",
+            "cursor": "pointer",
+            "fontWeight": "600",
+            "fontSize": "13px",
+            "letterSpacing": "0.5px",
+            "fontFamily": FONT_FAMILY,
+            "boxShadow": f"0 4px 14px {color}55",
+            "transition": "opacity 0.2s ease, transform 0.15s ease",
         },
     )
 
@@ -143,6 +145,7 @@ def _action_button(label: str, btn_id: str, color: str) -> html.Button:
 # ------------------------------------------------------------------
 # MAIN LAYOUT FUNCTION
 # ------------------------------------------------------------------
+
 
 def create_layout(df: pd.DataFrame) -> html.Div:
     """
@@ -176,7 +179,6 @@ def create_layout(df: pd.DataFrame) -> html.Div:
     return html.Div(
         [
             dcc.Store(id="active_table_type", data=""),
-
             # ----------------------------------------------------------
             # SECTION 1 — HERO HEADER
             # ----------------------------------------------------------
@@ -185,35 +187,34 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                     html.H1(
                         "QA Analytics Dashboard",
                         style={
-                            "margin":        "0 0 6px 0",
-                            "fontSize":      "28px",
-                            "fontWeight":    "800",
-                            "background":    "linear-gradient(90deg, #1e3799, #0984e3)",
-                            "WebkitBackgroundClip":  "text",
-                            "WebkitTextFillColor":   "transparent",
-                            "fontFamily":    FONT_FAMILY,
+                            "margin": "0 0 6px 0",
+                            "fontSize": "28px",
+                            "fontWeight": "800",
+                            "background": "linear-gradient(90deg, #1e3799, #0984e3)",
+                            "WebkitBackgroundClip": "text",
+                            "WebkitTextFillColor": "transparent",
+                            "fontFamily": FONT_FAMILY,
                         },
                     ),
                     html.P(
                         "Test execution analytics",
                         style={
-                            "margin":     "0",
-                            "fontSize":   "13px",
-                            "color":      "#636e72",
+                            "margin": "0",
+                            "fontSize": "13px",
+                            "color": "#636e72",
                             "fontFamily": FONT_FAMILY,
                         },
                     ),
                 ],
                 style={
-                    "background":    "white",
-                    "borderRadius":  CARD_RADIUS,
-                    "boxShadow":     CARD_SHADOW,
-                    "padding":       "24px 28px",
-                    "marginBottom":  SECTION_GAP,
-                    "borderLeft":    "5px solid #0984e3",
+                    "background": "white",
+                    "borderRadius": CARD_RADIUS,
+                    "boxShadow": CARD_SHADOW,
+                    "padding": "24px 28px",
+                    "marginBottom": SECTION_GAP,
+                    "borderLeft": "5px solid #0984e3",
                 },
             ),
-
             # ----------------------------------------------------------
             # SECTION 2 — FILTER BAR
             # ----------------------------------------------------------
@@ -225,13 +226,13 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                             html.Label(
                                 "SELECT DATE",
                                 style={
-                                    "fontSize":      "11px",
-                                    "fontWeight":    "700",
+                                    "fontSize": "11px",
+                                    "fontWeight": "700",
                                     "letterSpacing": "1.5px",
-                                    "color":         "#636e72",
-                                    "marginBottom":  "8px",
-                                    "display":       "block",
-                                    "fontFamily":    FONT_FAMILY,
+                                    "color": "#636e72",
+                                    "marginBottom": "8px",
+                                    "display": "block",
+                                    "fontFamily": FONT_FAMILY,
                                 },
                             ),
                             dcc.DatePickerSingle(
@@ -246,14 +247,13 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                 ],
                 style={
                     **CARD_STYLE,
-                    "display":      "flex",
-                    "gap":          "20px",
-                    "alignItems":   "flex-end",
+                    "display": "flex",
+                    "gap": "20px",
+                    "alignItems": "flex-end",
                     "marginBottom": SECTION_GAP,
-                    "flexWrap":     "wrap",
+                    "flexWrap": "wrap",
                 },
             ),
-
             # ----------------------------------------------------------
             # SECTION 3 — KPI CARDS (filled by callback)
             # ----------------------------------------------------------
@@ -267,7 +267,6 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                 color="#0984e3",
                 children=html.Div(id="kpi_cards", style={"marginBottom": SECTION_GAP}),
             ),
-
             # ----------------------------------------------------------
             # SECTION 4 — ROW 1: Status Distribution + Duration
             # ----------------------------------------------------------
@@ -299,7 +298,6 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                 ],
                 style=ROW_STYLE,
             ),
-
             # ----------------------------------------------------------
             # SECTION 5 — ROW 2: Failed Tests + Daily Trend
             # ----------------------------------------------------------
@@ -331,7 +329,6 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                 ],
                 style=ROW_STYLE,
             ),
-
             # ----------------------------------------------------------
             # SECTION 6 — MONITOR PRIORITY + ROOT CAUSE (side by side)
             # ----------------------------------------------------------
@@ -363,28 +360,54 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                 ],
                 style=ROW_STYLE,
             ),
-
             # ----------------------------------------------------------
-            # SECTION 8 — TABLE ACTION BUTTONS
+            # SECTION 7 — ENVIRONMENT BREAKDOWN
+            # ----------------------------------------------------------
+            _section_header("Environment Breakdown"),
+            html.Div(
+                id="environment_breakdown_container",
+                style={"marginBottom": SECTION_GAP},
+            ),
+            # ----------------------------------------------------------
+            # SECTION 8 — MODULE / SQUAD BREAKDOWN
+            # ----------------------------------------------------------
+            _section_header("Module / Squad Breakdown"),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            dcc.Loading(
+                                id="loading-module-breakdown",
+                                type="circle",
+                                color="#0984e3",
+                                children=dcc.Graph(id="module_breakdown_chart"),
+                            )
+                        ],
+                        style=FULL_CARD_STYLE,
+                    )
+                ],
+                style=ROW_STYLE,
+            ),
+            # ----------------------------------------------------------
+            # SECTION 9 — ACTION BUTTONS
             # ----------------------------------------------------------
             html.Div(
                 [
-                    _action_button("🆕  View New Tests",     "btn_new",     "#00b894"),
+                    _action_button("🆕  View New Tests", "btn_new", "#00b894"),
                     _action_button("✏️  View Updated Tests", "btn_updated", "#e17055"),
-                    _action_button("❌  View Failed Tests",  "btn_failed",  "#d63031"),
-                    _action_button("📋  Full Dataset",       "btn_full",    "#0984e3"),
+                    _action_button("❌  View Failed Tests", "btn_failed", "#d63031"),
+                    _action_button("📋  Full Dataset", "btn_full", "#0984e3"),
                 ],
                 style={
-                    "display":        "flex",
+                    "display": "flex",
                     "justifyContent": "center",
-                    "gap":            "14px",
-                    "marginBottom":   SECTION_GAP,
-                    "flexWrap":       "wrap",
+                    "gap": "14px",
+                    "marginBottom": SECTION_GAP,
+                    "flexWrap": "wrap",
                 },
             ),
-
             # ----------------------------------------------------------
-            # SECTION 9 — DYNAMIC TABLE (filled by callback, wrapped in Loading)
+            # DYNAMIC TABLE (filled by callback, wrapped in Loading)
             # ----------------------------------------------------------
             dcc.Loading(
                 id="loading-table",
@@ -392,13 +415,13 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                 color="#0984e3",
                 children=html.Div(id="dynamic_table"),
             ),
-
         ],
         style={
-            "background":  PAGE_BG,
-            "minHeight":   "100vh",
-            "padding":     "28px",
-            "fontFamily":  FONT_FAMILY,
-            "boxSizing":   "border-box",
+            "background": PAGE_BG,
+            "minHeight": "100vh",
+            "padding": "16px",
+            "margin": "0px",
+            "fontFamily": FONT_FAMILY,
+            "boxSizing": "border-box",
         },
     )

@@ -350,5 +350,32 @@ def load_all_reports() -> pd.DataFrame:
     df = _clean_status(df)
     df = _clean_monitor_status(df)
     df = _clean_duration(df)
+    df = _derive_env_and_module(df)
 
+    return df
+
+
+def _derive_env_and_module(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Derive ENV and MOD columns from the FEATURE AREA column.
+    """
+    def _parse_feature(feature_area):
+        feature_area = str(feature_area).strip()
+        if " - " in feature_area:
+            parts = feature_area.split(" - ")
+            env_part = parts[0].strip()
+            mod_part = parts[1].strip()
+            if env_part.startswith("UI "):
+                env = env_part[3:]
+            elif env_part.startswith("API "):
+                env = env_part[4:]
+            else:
+                env = env_part
+            return env, mod_part
+        elif feature_area.startswith("API "):
+            return "API", feature_area[4:].replace(".data.json", "").replace(".json", "")
+        else:
+            return "UI", feature_area
+
+    df["ENV"], df["MOD"] = zip(*df["FEATURE AREA"].fillna("UNKNOWN").apply(_parse_feature))
     return df

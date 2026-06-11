@@ -115,3 +115,9 @@ CHART_HEIGHT_LARGE  = 460   # Monitor / timeseries charts
 # TABLE SETTINGS
 # ------------------------------------------------------------------
 TABLE_PAGE_SIZE = 15   # Rows shown per page in the data table
+
+# ------------------------------------------------------------------
+# SLA SETTINGS
+# ------------------------------------------------------------------
+SLA_THRESHOLD = 30     # Max acceptable failed tests per day
+SLA_TARGET = 95        # Target environment pass rate (%)

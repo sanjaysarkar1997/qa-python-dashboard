@@ -36,6 +36,8 @@ from charts import (
     build_timeseries_chart,
     build_monitor_chart,
     build_failure_root_chart,
+    build_environment_table,
+    build_module_chart,
 )
 from config import (
     TABLE_PAGE_SIZE,
@@ -51,31 +53,31 @@ from config import (
 
 TABLE_HEADER_STYLE = {
     "backgroundColor": "#1e3799",
-    "color":           "white",
-    "fontWeight":      "700",
-    "textAlign":       "center",
-    "fontFamily":      FONT_FAMILY,
-    "fontSize":        "13px",
-    "padding":         "12px 8px",
-    "letterSpacing":   "0.5px",
+    "color": "white",
+    "fontWeight": "700",
+    "textAlign": "center",
+    "fontFamily": FONT_FAMILY,
+    "fontSize": "13px",
+    "padding": "12px 8px",
+    "letterSpacing": "0.5px",
 }
 
 TABLE_CELL_STYLE = {
-    "textAlign":  "center",
-    "padding":    "10px 8px",
+    "textAlign": "center",
+    "padding": "10px 8px",
     "fontFamily": FONT_FAMILY,
-    "fontSize":   "12px",
-    "minWidth":   "120px",
-    "color":      "#2d3436",
+    "fontSize": "12px",
+    "minWidth": "120px",
+    "color": "#2d3436",
 }
 
 TABLE_CONTAINER_STYLE = {
-    "overflowX":       "auto",
-    "maxHeight":       "560px",
-    "overflowY":       "auto",
+    "overflowX": "auto",
+    "maxHeight": "560px",
+    "overflowY": "auto",
     "backgroundColor": "white",
-    "borderRadius":    "12px",
-    "boxShadow":       "0 2px 12px rgba(0,0,0,0.07)",
+    "borderRadius": "12px",
+    "boxShadow": "0 2px 12px rgba(0,0,0,0.07)",
 }
 
 # Alternating row colours for readability (conditional formatting)
@@ -87,7 +89,7 @@ TABLE_STRIPE_STYLES = [
     {
         "if": {"state": "active"},
         "backgroundColor": "#dfe6e9",
-        "border":          "1px solid #b2bec3",
+        "border": "1px solid #b2bec3",
     },
 ]
 
@@ -109,13 +111,15 @@ def register(app) -> None:
     # ==============================================================
     @app.callback(
         [
-            Output("kpi_cards",          "children"),
-            Output("pie_chart",          "figure"),
-            Output("duration_chart",     "figure"),
-            Output("failed_chart",       "figure"),
-            Output("timeseries_chart",   "figure"),
-            Output("monitor_chart",      "figure"),
+            Output("kpi_cards", "children"),
+            Output("pie_chart", "figure"),
+            Output("duration_chart", "figure"),
+            Output("failed_chart", "figure"),
+            Output("timeseries_chart", "figure"),
+            Output("monitor_chart", "figure"),
             Output("failure_root_chart", "figure"),
+            Output("environment_breakdown_container", "children"),
+            Output("module_breakdown_chart", "figure"),
         ],
         [
             Input("selected_date", "date"),
@@ -134,7 +138,7 @@ def register(app) -> None:
         Returns
         -------
         tuple
-            Seven items matching the Outputs above, in the same order.
+            Nine items matching the Outputs above, in the same order.
         """
         # Step 1: Reload CSVs (picks up any changes since last refresh)
         df = load_all_reports()
@@ -149,19 +153,22 @@ def register(app) -> None:
 
         # Step 3: Apply filter for selected and last 10 days (total 11 days leading to selected_date)
         start_date_obj = selected_date_obj - pd.Timedelta(days=10)
-        df_trend = df[(df["DATE"] >= start_date_obj) & (df["DATE"] <= selected_date_obj)]
+        df_trend = df[
+            (df["DATE"] >= start_date_obj) & (df["DATE"] <= selected_date_obj)
+        ]
 
         # Step 4: Build each component
-        kpi     = build_kpi_cards(df_single)
-        pie     = build_pie_chart(df_single)
-        dur     = build_duration_chart(df_single)
-        failed  = build_failed_chart(df_trend)
-        ts      = build_timeseries_chart(df_trend)
+        kpi = build_kpi_cards(df_single)
+        pie = build_pie_chart(df_single)
+        dur = build_duration_chart(df_single)
+        failed = build_failed_chart(df_trend)
+        ts = build_timeseries_chart(df_trend)
         monitor = build_monitor_chart(df_single)
-        root    = build_failure_root_chart(df_single)
+        root = build_failure_root_chart(df_single)
+        env_table = build_environment_table(df_single, df_trend)
+        module_chart = build_module_chart(df_single)
 
-        return kpi, pie, dur, failed, ts, monitor, root
-
+        return kpi, pie, dur, failed, ts, monitor, root, env_table, module_chart
 
     # ==============================================================
     # CALLBACK 2 — Update Active Table Type
@@ -169,12 +176,12 @@ def register(app) -> None:
     @app.callback(
         Output("active_table_type", "data"),
         [
-            Input("btn_new",     "n_clicks"),
+            Input("btn_new", "n_clicks"),
             Input("btn_updated", "n_clicks"),
-            Input("btn_failed",  "n_clicks"),
-            Input("btn_full",    "n_clicks"),
+            Input("btn_failed", "n_clicks"),
+            Input("btn_full", "n_clicks"),
         ],
-        prevent_initial_call=True
+        prevent_initial_call=True,
     )
     def update_active_table(new_clicks, updated_clicks, failed_clicks, full_clicks):
         """
@@ -185,7 +192,6 @@ def register(app) -> None:
             return ""
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
         return button_id
-
 
     # ==============================================================
     # CALLBACK 3 — Table Rendering
@@ -243,8 +249,18 @@ def register(app) -> None:
 
         elif active_table == "btn_failed":
             # Show tests that have STATUS as FAIL on selected date
-            table_df = df_filtered[df_filtered["STATUS"].astype(str).str.contains("FAIL", na=False)]
-            cols = ["DATE", "TEST ID", "TEST NAME", "STATUS", "DURATION (S)", "MONITOR STATUS", "FAILURE ROOT CAUSE"]
+            table_df = df_filtered[
+                df_filtered["STATUS"].astype(str).str.contains("FAIL", na=False)
+            ]
+            cols = [
+                "DATE",
+                "TEST ID",
+                "TEST NAME",
+                "STATUS",
+                "DURATION (S)",
+                "MONITOR STATUS",
+                "FAILURE ROOT CAUSE",
+            ]
             cols = [c for c in cols if c in table_df.columns]
             table_df = table_df[cols]
             title = f"❌ Failed Tests (Selected Date: {selected_date_obj})"
@@ -264,12 +280,12 @@ def register(app) -> None:
                 html.Div(
                     title,
                     style={
-                        "fontWeight":    "700",
-                        "fontSize":      "15px",
-                        "marginBottom":  "12px",
-                        "fontFamily":    FONT_FAMILY,
-                        "color":         "#2d3436",
-                        "paddingLeft":   "4px",
+                        "fontWeight": "700",
+                        "fontSize": "15px",
+                        "marginBottom": "12px",
+                        "fontFamily": FONT_FAMILY,
+                        "color": "#2d3436",
+                        "paddingLeft": "4px",
                     },
                 ),
                 # The interactive DataTable
@@ -287,8 +303,8 @@ def register(app) -> None:
             ],
             style={
                 "backgroundColor": "white",
-                "borderRadius":    "14px",
-                "boxShadow":       "0 2px 12px rgba(0,0,0,0.07)",
-                "padding":         "20px",
+                "borderRadius": "14px",
+                "boxShadow": "0 2px 12px rgba(0,0,0,0.07)",
+                "padding": "20px",
             },
         )
