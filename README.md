@@ -144,7 +144,6 @@ http://127.0.0.1:8052
 |--------|--------------|
 | **FROM DATE** | Show only tests run on or after this date |
 | **TO DATE** | Show only tests run on or before this date |
-| **FILTER BY STATUS** | Show only selected statuses (multi-select) |
 
 All charts update instantly when you change a filter.
 
@@ -171,7 +170,7 @@ Five summary cards show at a glance:
 | **Test Status Distribution** | Donut chart — proportion of each status |
 | **Test Execution Duration** | Bar chart — how long tests take (grouped into 10 s buckets) |
 | **Failed Tests Per Day** | Bar chart — failure count per date |
-| **Daily Test Trend** | Line chart — cumulative total, daily new, and daily updated |
+| **Daily Test Trend** | Line chart — daily total, daily new, and daily updated |
 | **Monitor Status Breakdown** | Stacked bar — HIGH / CRITICAL / MONITOR CLOSELY priority tests |
 | **Failure Root Cause Analysis** | Donut chart — distribution of why tests failed |
 
