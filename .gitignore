@@ -1,0 +1,16 @@
+# Virtual environment — never commit this to Git
+.venv/*
+venv/
+env/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE settings
+.vscode/
+.idea/
+
+# macOS junk
+.DS_Store
