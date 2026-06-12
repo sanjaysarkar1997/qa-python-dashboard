@@ -3,29 +3,76 @@ config.py
 =========
 Central configuration file for the QA Analytics Dashboard.
 
-All constants (colors, paths, chart settings) are stored here so that
-an intern only needs to change this one file to tweak behavior across
-the entire dashboard.
+All environment-specific values (paths, ports, URLs) are loaded from
+a .env file via python-dotenv.  Purely visual constants (colors, chart
+settings) remain here as code.
 
-How to use:
+Required .env variables
+-----------------------
+  DASHBOARD_PORT          Port the Dash app will run on
+  DASHBOARD_DEBUG         "true" or "false"
+  REPORTS_FOLDER          Absolute path to the CSV reports folder
+  RUN_TEST_SERVER_URL     URL for the run-test-server (e.g. http://localhost:4000)
+  ALLURE_REPORT_URL       URL for the Allure report viewer
+
+The app raises a ValueError at startup if ANY required variable is missing.
+
+Usage:
     from config import STATUS_COLORS, REPORTS_FOLDER, PORT
 """
 
 import os
 
-# ------------------------------------------------------------------
-# REPORTS FOLDER
-# ------------------------------------------------------------------
-# Path (relative to app.py) where all test-summary CSV files live.
-# The dashboard will auto-discover every *.csv file in this folder.
-# Just drop a new CSV in and restart the app — it will be picked up.
-REPORTS_FOLDER = os.path.join(os.path.dirname(__file__), "reports")
+from dotenv import load_dotenv
 
 # ------------------------------------------------------------------
-# APP SERVER SETTINGS
+# LOAD .env
 # ------------------------------------------------------------------
-PORT = 8052          # Port the Dash app will run on
-DEBUG = True         # Set to False in production
+# override=False means already-set environment variables win over .env
+load_dotenv(override=False)
+
+
+# ------------------------------------------------------------------
+# INTERNAL HELPER
+# ------------------------------------------------------------------
+
+def _require_env(name: str) -> str:
+    """
+    Return the value of environment variable *name*.
+
+    Raises
+    ------
+    ValueError
+        Immediately, with a clear message, if the variable is not set
+        or is an empty string.  No fallback values are provided.
+    """
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise ValueError(
+            f"\n\n  [config] Missing required environment variable: {name!r}\n"
+            f"  Please add it to your .env file.  See .env.example for reference.\n"
+        )
+    return value
+
+
+# ------------------------------------------------------------------
+# APP SERVER SETTINGS  (from .env — required)
+# ------------------------------------------------------------------
+PORT  = int(_require_env("DASHBOARD_PORT"))
+DEBUG = _require_env("DASHBOARD_DEBUG").lower() == "true"
+
+# ------------------------------------------------------------------
+# REPORTS FOLDER  (from .env — required)
+# ------------------------------------------------------------------
+# Absolute path to the folder that contains all test-summary CSV files.
+# The dashboard auto-discovers every *.csv file inside this folder.
+REPORTS_FOLDER = _require_env("REPORTS_FOLDER")
+
+# ------------------------------------------------------------------
+# EXTERNAL SERVICE URLs  (from .env — required)
+# ------------------------------------------------------------------
+RUN_TEST_SERVER_URL = _require_env("RUN_TEST_SERVER_URL")
+ALLURE_REPORT_URL   = _require_env("ALLURE_REPORT_URL")
 
 # ------------------------------------------------------------------
 # AUTO-REFRESH INTERVAL

@@ -14,3 +14,7 @@ __pycache__/
 
 # macOS junk
 .DS_Store
+
+# Environment variables — contains secrets / local paths
+# .env.example is safe to commit (no real values), .env is NOT
+.env

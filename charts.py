@@ -16,13 +16,15 @@ All charts share:
 
 Functions
 ---------
-build_kpi_cards(df)          → Dash HTML (not a Plotly figure)
-build_pie_chart(df)          → Donut — status distribution
-build_duration_chart(df)     → Bar — test duration groups
-build_failed_chart(df)       → Bar — failed tests per day
-build_timeseries_chart(df)   → Line — daily / cumulative trends
-build_monitor_chart(df)      → Stacked bar — monitor status breakdown
-build_failure_root_chart(df) → Donut — failure root cause
+build_kpi_cards(df)               → Dash HTML (not a Plotly figure)
+build_pie_chart(df)               → Donut — status distribution
+build_duration_chart(df)          → Bar — test duration groups
+build_failed_chart(df)            → Bar — failed tests per day
+build_timeseries_chart(df)        → Line — daily / cumulative trends
+build_monitor_chart(df)           → Stacked bar — monitor status breakdown
+build_failure_root_chart(df)      → Horizontal bar — failure root cause
+build_failed_endpoint_chart(df)   → Horizontal bar — top failing API endpoints
+build_failed_step_chart(df)       → Horizontal bar — failing lifecycle steps
 """
 
 import pandas as pd
@@ -342,25 +344,27 @@ def build_failed_chart(df: pd.DataFrame) -> go.Figure:
     from config import SLA_THRESHOLD
 
     failed_df = df[df["STATUS"].astype(str).str.contains("FAIL", na=False)]
-    
+
     unique_dates = sorted(df["DATE"].dropna().unique())
-    
+
     fig = go.Figure()
 
     # Define the colors for the test types
     colors = {
-        "API": "#7f0000",   # Deep maroon / dark red
-        "UI": "#ff7675",    # Light coral / pastel red
+        "API": "#7f0000",  # Deep maroon / dark red
+        "UI": "#ff7675",  # Light coral / pastel red
     }
-    
+
     # We support API and UI; check what types actually exist in failed_df
-    found_types = failed_df["TEST TYPE"].dropna().unique() if not failed_df.empty else []
+    found_types = (
+        failed_df["TEST TYPE"].dropna().unique() if not failed_df.empty else []
+    )
     # Order them nicely (API first, then UI, then others)
     test_types = [t for t in ["API", "UI"] if t in found_types]
     for t in found_types:
         if t not in test_types:
             test_types.append(t)
-            
+
     # If there are no failures at all, we still show the unique dates on the x-axis with 0 counts
     if failed_df.empty or len(test_types) == 0:
         fig.add_trace(
@@ -383,19 +387,21 @@ def build_failed_chart(df: pd.DataFrame) -> go.Figure:
             type_df = failed_df[failed_df["TEST TYPE"] == ttype]
             type_counts = type_df.groupby("DATE").size()
             y_values = [type_counts.get(d, 0) for d in unique_dates]
-            
+
             # Show text label inside/outside the bar segment if it is non-zero
             text_values = [str(val) if val > 0 else "" for val in y_values]
-            
+
             color_val = colors.get(ttype, "#b2bec3")
-            
+
             fig.add_trace(
                 go.Bar(
                     x=unique_dates,
                     y=y_values,
                     text=text_values,
                     textposition="auto",
-                    textfont=dict(size=12, color="white" if ttype in colors else "#2d3436"),
+                    textfont=dict(
+                        size=12, color="white" if ttype in colors else "#2d3436"
+                    ),
                     marker=dict(color=color_val),
                     name=f"{ttype} Failures",
                     hovertemplate=(
@@ -1049,6 +1055,220 @@ def build_module_chart(df: pd.DataFrame) -> go.Figure:
         height=CHART_HEIGHT_MEDIUM,
         xaxis=dict(title="Failure Count", gridcolor="#f1f2f6"),
         yaxis=dict(title="Module Name"),
+    )
+
+    return fig
+
+
+# ==================================================================
+# 10. FAILED ENDPOINT BREAKDOWN CHART
+# ==================================================================
+
+
+def build_failed_endpoint_chart(df: pd.DataFrame) -> go.Figure:
+    """
+    Build a horizontal bar chart of the top 15 most frequently failing API endpoints.
+
+    Uses the FAILED ENDPOINT column added by the new generate-report.cjs
+    to show exactly which endpoints are breaking most often.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+    """
+    FAILED_ENDPOINT_COL = "FAILED ENDPOINT"
+
+    failed_df = df[
+        df["STATUS"].astype(str).str.contains("FAIL", na=False)
+    ]
+
+    if FAILED_ENDPOINT_COL not in failed_df.columns:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="'Failed Endpoint' column not found in CSV (run latest report)",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=13, color="#636e72"),
+        )
+        return _apply_base_layout(
+            fig,
+            title=dict(text="Top Failing Endpoints", font=dict(size=16)),
+            height=CHART_HEIGHT_LARGE,
+        )
+
+    # Filter out em-dash placeholders (tests without an endpoint recorded)
+    ep_df = failed_df[
+        failed_df[FAILED_ENDPOINT_COL].notna()
+        & (failed_df[FAILED_ENDPOINT_COL].astype(str).str.strip() != "—")
+        & (failed_df[FAILED_ENDPOINT_COL].astype(str).str.strip() != "")
+    ]
+
+    if ep_df.empty:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No endpoint failure data available for this date",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=14, color="#636e72"),
+        )
+        return _apply_base_layout(
+            fig,
+            title=dict(text="Top Failing Endpoints", font=dict(size=16)),
+            height=CHART_HEIGHT_LARGE,
+        )
+
+    # Count failures per endpoint, top 15
+    ep_group = (
+        ep_df.groupby(FAILED_ENDPOINT_COL)
+        .size()
+        .reset_index(name="FAILURES")
+        .sort_values("FAILURES", ascending=True)
+        .tail(15)  # top 15 by failure count
+    )
+
+    # Color ramp: deeper red = more failures
+    colors = []
+    max_f = ep_group["FAILURES"].max()
+    for count in ep_group["FAILURES"]:
+        ratio = count / max_f if max_f > 0 else 0
+        if ratio >= 0.75:
+            colors.append("#b32d2c")  # deep red
+        elif ratio >= 0.40:
+            colors.append("#E24B4A")  # standard red
+        elif ratio >= 0.15:
+            colors.append("#ff7675")  # coral
+        else:
+            colors.append("#ffb3b3")  # light pink
+
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=ep_group["FAILURES"],
+                y=ep_group[FAILED_ENDPOINT_COL],
+                orientation="h",
+                text=ep_group["FAILURES"],
+                textposition="outside",
+                textfont=dict(size=12, color="#2d3436"),
+                marker=dict(color=colors),
+                hovertemplate=(
+                    "<span style='font-size: 14px; font-weight: bold; color: #f87171;'>%{y}</span><br>"
+                    "<span style='color: #94a3b8;'>Failures:</span> <b>%{x:,}</b><extra></extra>"
+                ),
+            )
+        ]
+    )
+
+    fig = _apply_base_layout(
+        fig,
+        title=dict(text="Top Failing Endpoints", font=dict(size=16)),
+        height=CHART_HEIGHT_LARGE,
+        xaxis=dict(title="Failure Count", gridcolor="#f1f2f6"),
+        yaxis=dict(
+            title="Endpoint",
+            tickfont=dict(size=10),
+            automargin=True,
+        ),
+        margin=dict(l=300, r=30, t=55, b=30),  # Extra left margin for long endpoint labels
+    )
+
+    return fig
+
+
+# ==================================================================
+# 11. FAILED STEP BREAKDOWN CHART (Lifecycle / Cross-Data-Flow)
+# ==================================================================
+
+
+def build_failed_step_chart(df: pd.DataFrame) -> go.Figure:
+    """
+    Build a horizontal bar chart of the lifecycle step names that fail most often.
+
+    Only relevant for cross-data-flow / lifecycle tests.  Uses the FAILED STEP
+    column (e.g. "[CREATE] by INVOICE_CREATOR") added by lifecycle_helper.ts.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+    """
+    FAILED_STEP_COL = "FAILED STEP"
+
+    failed_df = df[
+        df["STATUS"].astype(str).str.contains("FAIL", na=False)
+    ]
+
+    if FAILED_STEP_COL not in failed_df.columns:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="'Failed Step' column not found in CSV (run latest report)",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=13, color="#636e72"),
+        )
+        return _apply_base_layout(
+            fig,
+            title=dict(text="Failed Lifecycle Steps", font=dict(size=16)),
+            height=CHART_HEIGHT_MEDIUM,
+        )
+
+    step_df = failed_df[
+        failed_df[FAILED_STEP_COL].notna()
+        & (failed_df[FAILED_STEP_COL].astype(str).str.strip() != "—")
+        & (failed_df[FAILED_STEP_COL].astype(str).str.strip() != "")
+    ]
+
+    if step_df.empty:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="No lifecycle step failures recorded for this date",
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=14, color="#636e72"),
+        )
+        return _apply_base_layout(
+            fig,
+            title=dict(text="Failed Lifecycle Steps", font=dict(size=16)),
+            height=CHART_HEIGHT_MEDIUM,
+        )
+
+    step_group = (
+        step_df.groupby(FAILED_STEP_COL)
+        .size()
+        .reset_index(name="FAILURES")
+        .sort_values("FAILURES", ascending=True)
+    )
+
+    fig = go.Figure(
+        data=[
+            go.Bar(
+                x=step_group["FAILURES"],
+                y=step_group[FAILED_STEP_COL],
+                orientation="h",
+                text=step_group["FAILURES"],
+                textposition="outside",
+                textfont=dict(size=12, color="#2d3436"),
+                marker=dict(
+                    color=step_group["FAILURES"],
+                    colorscale=["#fdcb6e", "#e17055", "#d63031"],
+                    showscale=False,
+                ),
+                hovertemplate=(
+                    "<span style='font-size: 14px; font-weight: bold; color: #f87171;'>%{y}</span><br>"
+                    "<span style='color: #94a3b8;'>Step Failures:</span> <b>%{x:,}</b><extra></extra>"
+                ),
+            )
+        ]
+    )
+
+    fig = _apply_base_layout(
+        fig,
+        title=dict(text="Failed Lifecycle Steps", font=dict(size=16)),
+        height=CHART_HEIGHT_MEDIUM,
+        xaxis=dict(title="Failure Count", gridcolor="#f1f2f6"),
+        yaxis=dict(title="Step (Role)", automargin=True),
     )
 
     return fig

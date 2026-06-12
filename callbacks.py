@@ -23,6 +23,7 @@ Usage:
 """
 
 import pandas as pd
+from datetime import date
 
 from dash import Input, Output, callback_context, dash_table
 from dash import html
@@ -38,6 +39,8 @@ from charts import (
     build_failure_root_chart,
     build_environment_table,
     build_module_chart,
+    build_failed_endpoint_chart,
+    build_failed_step_chart,
 )
 from config import (
     TABLE_PAGE_SIZE,
@@ -120,6 +123,8 @@ def register(app) -> None:
             Output("failure_root_chart", "figure"),
             Output("environment_breakdown_container", "children"),
             Output("module_breakdown_chart", "figure"),
+            Output("failed_endpoint_chart", "figure"),
+            Output("failed_step_chart", "figure"),
         ],
         [
             Input("selected_date", "date"),
@@ -144,7 +149,7 @@ def register(app) -> None:
         df = load_all_reports()
 
         if not selected_date:
-            selected_date = str(df["DATE"].dropna().max())
+            selected_date = str(date.today())
 
         selected_date_obj = pd.to_datetime(selected_date).date()
 
@@ -167,8 +172,10 @@ def register(app) -> None:
         root = build_failure_root_chart(df_single)
         env_table = build_environment_table(df_single, df_trend)
         module_chart = build_module_chart(df_single)
+        failed_endpoint = build_failed_endpoint_chart(df_single)
+        failed_step = build_failed_step_chart(df_single)
 
-        return kpi, pie, dur, failed, ts, monitor, root, env_table, module_chart
+        return kpi, pie, dur, failed, ts, monitor, root, env_table, module_chart, failed_endpoint, failed_step
 
     # ==============================================================
     # CALLBACK 2 — Update Active Table Type
@@ -226,7 +233,7 @@ def register(app) -> None:
         df = load_all_reports()
 
         if not selected_date:
-            selected_date = str(df["DATE"].dropna().max())
+            selected_date = str(date.today())
         selected_date_obj = pd.to_datetime(selected_date).date()
 
         # Filter the dataset for the selected date
@@ -260,6 +267,11 @@ def register(app) -> None:
                 "DURATION (S)",
                 "MONITOR STATUS",
                 "FAILURE ROOT CAUSE",
+                "FAILED ENDPOINT",
+                "EXPECTED VS GOT",
+                "SERVER ERROR MESSAGE",
+                "FAILED STEP",
+                "SOURCE LOCATION",
             ]
             cols = [c for c in cols if c in table_df.columns]
             table_df = table_df[cols]

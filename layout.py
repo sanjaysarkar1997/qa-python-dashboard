@@ -19,6 +19,7 @@ Usage:
 """
 
 import pandas as pd
+from datetime import date
 
 from dash import dcc, html, dash_table
 
@@ -26,6 +27,8 @@ from config import (
     TABLE_PAGE_SIZE,
     STATUS_COLORS,
     FONT_FAMILY,
+    RUN_TEST_SERVER_URL,
+    ALLURE_REPORT_URL,
 )
 
 
@@ -172,9 +175,8 @@ def create_layout(df: pd.DataFrame) -> html.Div:
         Root layout element passed to `app.layout`.
     """
 
-    # Calculate default date range from the loaded data
-    min_date = str(df["DATE"].dropna().min())
-    max_date = str(df["DATE"].dropna().max())
+    # Default date is today's date
+    default_date = str(date.today())
 
     return html.Div(
         [
@@ -184,25 +186,84 @@ def create_layout(df: pd.DataFrame) -> html.Div:
             # ----------------------------------------------------------
             html.Div(
                 [
-                    html.H1(
-                        "QA Analytics Dashboard",
-                        style={
-                            "margin": "0 0 6px 0",
-                            "fontSize": "28px",
-                            "fontWeight": "800",
-                            "background": "linear-gradient(90deg, #1e3799, #0984e3)",
-                            "WebkitBackgroundClip": "text",
-                            "WebkitTextFillColor": "transparent",
-                            "fontFamily": FONT_FAMILY,
-                        },
+                    # Left: title + subtitle
+                    html.Div(
+                        [
+                            html.H1(
+                                "QA Analytics Dashboard",
+                                style={
+                                    "margin": "0 0 6px 0",
+                                    "fontSize": "28px",
+                                    "fontWeight": "800",
+                                    "background": "linear-gradient(90deg, #1e3799, #0984e3)",
+                                    "WebkitBackgroundClip": "text",
+                                    "WebkitTextFillColor": "transparent",
+                                    "fontFamily": FONT_FAMILY,
+                                },
+                            ),
+                            html.P(
+                                "Test execution analytics — powered by Playwright & Allure",
+                                style={
+                                    "margin": "0",
+                                    "fontSize": "13px",
+                                    "color": "#636e72",
+                                    "fontFamily": FONT_FAMILY,
+                                },
+                            ),
+                        ],
+                        style={"flex": "1"},
                     ),
-                    html.P(
-                        "Test execution analytics",
+                    # Right: quick links to the run-test-server
+                    html.Div(
+                        [
+                            html.A(
+                                "🧪  Run Tests",
+                                href=RUN_TEST_SERVER_URL,
+                                target="_blank",
+                                rel="noopener noreferrer",
+                                style={
+                                    "display": "inline-flex",
+                                    "alignItems": "center",
+                                    "gap": "6px",
+                                    "padding": "9px 20px",
+                                    "background": "linear-gradient(135deg, #0984e3 0%, #1e3799 100%)",
+                                    "color": "white",
+                                    "borderRadius": "50px",
+                                    "textDecoration": "none",
+                                    "fontFamily": FONT_FAMILY,
+                                    "fontWeight": "600",
+                                    "fontSize": "13px",
+                                    "boxShadow": "0 4px 14px rgba(9,132,227,0.35)",
+                                    "transition": "opacity 0.2s",
+                                    "marginRight": "10px",
+                                },
+                            ),
+                            html.A(
+                                "📄  Allure Report",
+                                href=ALLURE_REPORT_URL,
+                                target="_blank",
+                                rel="noopener noreferrer",
+                                style={
+                                    "display": "inline-flex",
+                                    "alignItems": "center",
+                                    "gap": "6px",
+                                    "padding": "9px 20px",
+                                    "background": "linear-gradient(135deg, #00b894 0%, #00cec9 100%)",
+                                    "color": "white",
+                                    "borderRadius": "50px",
+                                    "textDecoration": "none",
+                                    "fontFamily": FONT_FAMILY,
+                                    "fontWeight": "600",
+                                    "fontSize": "13px",
+                                    "boxShadow": "0 4px 14px rgba(0,184,148,0.35)",
+                                    "transition": "opacity 0.2s",
+                                },
+                            ),
+                        ],
                         style={
-                            "margin": "0",
-                            "fontSize": "13px",
-                            "color": "#636e72",
-                            "fontFamily": FONT_FAMILY,
+                            "display": "flex",
+                            "alignItems": "center",
+                            "flexShrink": "0",
                         },
                     ),
                 ],
@@ -210,9 +271,14 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                     "background": "white",
                     "borderRadius": CARD_RADIUS,
                     "boxShadow": CARD_SHADOW,
-                    "padding": "24px 28px",
+                    "padding": "20px 28px",
                     "marginBottom": SECTION_GAP,
                     "borderLeft": "5px solid #0984e3",
+                    "display": "flex",
+                    "alignItems": "center",
+                    "justifyContent": "space-between",
+                    "gap": "16px",
+                    "flexWrap": "wrap",
                 },
             ),
             # ----------------------------------------------------------
@@ -237,7 +303,7 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                             ),
                             dcc.DatePickerSingle(
                                 id="selected_date",
-                                date=max_date,
+                                date=default_date,
                                 display_format="DD MMM YYYY",
                                 style={"width": "100%"},
                             ),
@@ -381,6 +447,46 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                                 type="circle",
                                 color="#0984e3",
                                 children=dcc.Graph(id="module_breakdown_chart"),
+                            )
+                        ],
+                        style=FULL_CARD_STYLE,
+                    )
+                ],
+                style=ROW_STYLE,
+            ),
+            # ----------------------------------------------------------
+            # SECTION 9 — TOP FAILING ENDPOINTS
+            # ----------------------------------------------------------
+            _section_header("Top Failing Endpoints"),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            dcc.Loading(
+                                id="loading-failed-endpoint",
+                                type="circle",
+                                color="#0984e3",
+                                children=dcc.Graph(id="failed_endpoint_chart"),
+                            )
+                        ],
+                        style=FULL_CARD_STYLE,
+                    )
+                ],
+                style=ROW_STYLE,
+            ),
+            # ----------------------------------------------------------
+            # SECTION 10 — FAILED LIFECYCLE STEPS
+            # ----------------------------------------------------------
+            _section_header("Failed Lifecycle Steps (Cross-Data-Flow)"),
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            dcc.Loading(
+                                id="loading-failed-step",
+                                type="circle",
+                                color="#0984e3",
+                                children=dcc.Graph(id="failed_step_chart"),
                             )
                         ],
                         style=FULL_CARD_STYLE,

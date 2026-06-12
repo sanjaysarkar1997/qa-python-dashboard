@@ -138,6 +138,11 @@ def _add_missing_columns(df: pd.DataFrame) -> pd.DataFrame:
     optional_columns = {
         "MONITOR STATUS": "NORMAL",
         "FAILURE ROOT CAUSE": "—",  # em-dash = not applicable
+        "FAILED ENDPOINT": "—",
+        "EXPECTED VS GOT": "—",
+        "SERVER ERROR MESSAGE": "—",
+        "FAILED STEP": "—",
+        "SOURCE LOCATION": "—",
         "UPDATED AT": pd.NaT,
         "CREATED AT": pd.NaT,
         "TEST TYPE": "UNKNOWN",
