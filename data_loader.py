@@ -313,19 +313,25 @@ def load_all_reports() -> pd.DataFrame:
       2. Loads and concatenates them into one DataFrame
       3. Adds missing columns (for older CSV formats)
       4. Cleans dates, statuses, durations
-      5. Returns the final clean DataFrame
+      5. Deduplicates: keeps the latest run per (TEST ID, DATE)
+      6. Returns the final clean DataFrame
+
+    Why deduplicate?
+    ----------------
+    If tests run past midnight (e.g. triggered on Jun 12 at 1 AM but
+    finishing on Jun 13), the CSV is written with yesterday's filename
+    (test-summary-2026-06-12.csv) but every START TIME timestamp is
+    Jun 13.  When all CSVs are concatenated, those rows appear under
+    Jun 13 alongside today's full run — causing inflated totals.
+
+    Deduplicating by (TEST ID, DATE) using the latest START TIME keeps
+    only the most recent execution of each test per calendar day, which
+    is always the correct and intended view.
 
     Returns
     -------
     pd.DataFrame
-        A clean, analysis-ready DataFrame with all test records.
-
-    Example
-    -------
-    >>> from data_loader import load_all_reports
-    >>> df = load_all_reports()
-    >>> print(df.shape)
-    (1500, 18)
+        A clean, deduplicated, analysis-ready DataFrame.
     """
     csv_files = _discover_csv_files()
 
@@ -351,12 +357,33 @@ def load_all_reports() -> pd.DataFrame:
 
     # Apply cleaning pipeline step by step
     df = _add_missing_columns(df)
-    df = _parse_dates(df)
+    df = _parse_dates(df)          # adds DATE column from START TIME
     df = _clean_status(df)
     df = _clean_monitor_status(df)
     df = _clean_duration(df)
     df = _derive_env_and_module(df)
 
+    # ── Deduplicate ───────────────────────────────────────────────────
+    # A test may appear more than once across CSVs when:
+    #   • Tests run past midnight (filename date ≠ START TIME date)
+    #   • The same test suite is re-run on the same day
+    # Strategy: for each (TEST ID, DATE) pair keep the row with the
+    # latest START TIME — i.e. the most recent execution.
+    if "TEST ID" in df.columns and "DATE" in df.columns and "START TIME" in df.columns:
+        before = len(df)
+        df = (
+            df
+            .sort_values("START TIME", ascending=False)     # latest first
+            .drop_duplicates(subset=["TEST ID", "DATE"], keep="first")  # keep latest
+            .sort_values("START TIME")                      # restore chronological order
+            .reset_index(drop=True)
+        )
+        dropped = before - len(df)
+        if dropped:
+            print(f"[data_loader] Deduplicated: removed {dropped:,} duplicate row(s) "
+                  f"(kept latest run per TEST ID per day).")
+
+    print(f"[data_loader] Final row count: {len(df):,}")
     return df
 
 
