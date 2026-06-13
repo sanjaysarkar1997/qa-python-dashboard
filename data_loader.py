@@ -143,6 +143,7 @@ def _add_missing_columns(df: pd.DataFrame) -> pd.DataFrame:
         "SERVER ERROR MESSAGE": "—",
         "FAILED STEP": "—",
         "SOURCE LOCATION": "—",
+        "SUB TYPE": "—",           # cross-flow sub-type (common, invoice, rbac, etc.)
         "UPDATED AT": pd.NaT,
         "CREATED AT": pd.NaT,
         "TEST TYPE": "UNKNOWN",

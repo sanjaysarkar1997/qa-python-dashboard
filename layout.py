@@ -181,8 +181,111 @@ def create_layout(df: pd.DataFrame) -> html.Div:
     return html.Div(
         [
             dcc.Store(id="active_table_type", data=""),
+            dcc.Store(id="flowchart_test_id", data=""),
+
             # ----------------------------------------------------------
-            # SECTION 1 — HERO HEADER
+            # FLOWCHART MODAL OVERLAY (hidden by default)
+            # ----------------------------------------------------------
+            html.Div(
+                [
+                    # Semi-transparent backdrop
+                    html.Div(
+                        id="flowchart_backdrop",
+                        style={
+                            "position": "fixed",
+                            "top": "0",
+                            "left": "0",
+                            "width": "100vw",
+                            "height": "100vh",
+                            "backgroundColor": "rgba(15,23,42,0.65)",
+                            "backdropFilter": "blur(4px)",
+                            "zIndex": "9998",
+                        },
+                        n_clicks=0,
+                    ),
+                    # Modal card
+                    html.Div(
+                        [
+                            # Modal header
+                            html.Div(
+                                [
+                                    html.Div(
+                                        [
+                                            html.Span(
+                                                "📊",
+                                                style={"fontSize": "22px", "marginRight": "10px"},
+                                            ),
+                                            html.Span(
+                                                id="flowchart_modal_title",
+                                                style={
+                                                    "fontFamily": FONT_FAMILY,
+                                                    "fontWeight": "700",
+                                                    "fontSize": "16px",
+                                                    "color": "#1e293b",
+                                                },
+                                            ),
+                                        ],
+                                        style={"display": "flex", "alignItems": "center"},
+                                    ),
+                                    html.Button(
+                                        "✕",
+                                        id="flowchart_close_btn",
+                                        n_clicks=0,
+                                        style={
+                                            "background": "none",
+                                            "border": "none",
+                                            "fontSize": "20px",
+                                            "cursor": "pointer",
+                                            "color": "#64748b",
+                                            "padding": "4px 8px",
+                                            "borderRadius": "6px",
+                                            "lineHeight": "1",
+                                        },
+                                    ),
+                                ],
+                                style={
+                                    "display": "flex",
+                                    "justifyContent": "space-between",
+                                    "alignItems": "center",
+                                    "borderBottom": "1px solid #e2e8f0",
+                                    "paddingBottom": "14px",
+                                    "marginBottom": "20px",
+                                },
+                            ),
+                            # Sub-type + description row
+                            html.Div(
+                                id="flowchart_modal_meta",
+                                style={"marginBottom": "18px"},
+                            ),
+                            # Flowchart body
+                            html.Div(
+                                id="flowchart_modal_body",
+                                style={
+                                    "overflowY": "auto",
+                                    "maxHeight": "60vh",
+                                    "paddingRight": "4px",
+                                },
+                            ),
+                        ],
+                        style={
+                            "position": "fixed",
+                            "top": "50%",
+                            "left": "50%",
+                            "transform": "translate(-50%, -50%)",
+                            "backgroundColor": "white",
+                            "borderRadius": "20px",
+                            "boxShadow": "0 25px 60px rgba(0,0,0,0.25)",
+                            "padding": "28px 32px",
+                            "zIndex": "9999",
+                            "width": "min(90vw, 760px)",
+                            "fontFamily": FONT_FAMILY,
+                        },
+                    ),
+                ],
+                id="flowchart_modal_overlay",
+                style={"display": "none"},  # hidden until triggered
+            ),
+
             # ----------------------------------------------------------
             html.Div(
                 [
@@ -502,6 +605,7 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                     _action_button("🆕  View New Tests", "btn_new", "#00b894"),
                     _action_button("✏️  View Updated Tests", "btn_updated", "#e17055"),
                     _action_button("❌  View Failed Tests", "btn_failed", "#d63031"),
+                    _action_button("🔄  Cross-Data-Flow", "btn_crossflow", "#6c5ce7"),
                     _action_button("📋  Full Dataset", "btn_full", "#0984e3"),
                 ],
                 style={
@@ -512,6 +616,7 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                     "flexWrap": "wrap",
                 },
             ),
+
             # ----------------------------------------------------------
             # DYNAMIC TABLE (filled by callback, wrapped in Loading)
             # ----------------------------------------------------------

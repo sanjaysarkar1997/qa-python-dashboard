@@ -1,0 +1,74 @@
+/* custom.css */
+
+/* Elegant custom scrollbars for table and modal bodies */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Flow Chart step card transitions & hover effects */
+.step-card {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: default;
+}
+
+.step-card:hover {
+    transform: translateX(4px);
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.08), 0 8px 12px -6px rgba(0, 0, 0, 0.04) !important;
+    background-color: #fafbfd !important;
+}
+
+/* Timeline flow node interactive scaling */
+.flow-circle {
+    transition: all 0.25s ease;
+}
+.flow-circle:hover {
+    transform: scale(1.15);
+}
+
+/* Monospace code block enhancements */
+.monospace-code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    letter-spacing: -0.2px;
+}
+
+/* Details summary enhancements with rotating caret */
+details {
+    border-top: 1px dashed #e2e8f0;
+    margin-top: 10px;
+    padding-top: 8px;
+}
+
+details summary {
+    list-style: none;
+    outline: none;
+    user-select: none;
+    transition: color 0.15s ease;
+}
+
+details summary::-webkit-details-marker {
+    display: none;
+}
+
+details summary::before {
+    content: "▶";
+    display: inline-block;
+    font-size: 8px;
+    margin-right: 6px;
+    color: #94a3b8;
+    transition: transform 0.2s ease;
+}
+
+details[open] summary::before {
+    transform: rotate(90deg);
+}

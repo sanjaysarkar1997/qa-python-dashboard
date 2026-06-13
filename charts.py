@@ -328,10 +328,7 @@ def build_duration_chart(df: pd.DataFrame) -> go.Figure:
 
 def build_failed_chart(df: pd.DataFrame) -> go.Figure:
     """
-    Build the daily failed test count stacked bar chart (API vs UI).
-
-    Filters to only FAIL records, then groups by DATE and TEST TYPE to show how
-    many tests of each type failed on each day.
+    Build the daily failed, skipped, and broken test count stacked bar chart.
 
     Parameters
     ----------
@@ -343,30 +340,56 @@ def build_failed_chart(df: pd.DataFrame) -> go.Figure:
     """
     from config import SLA_THRESHOLD
 
-    failed_df = df[df["STATUS"].astype(str).str.contains("FAIL", na=False)]
+    # Filter to non-passing tests (FAIL, SKIPPED, BROKEN)
+    status_upper = df["STATUS"].astype(str).str.upper()
+    unsuccessful_df = df[status_upper.str.contains("FAIL|SKIP|BROKEN", na=False)]
 
     unique_dates = sorted(df["DATE"].dropna().unique())
 
     fig = go.Figure()
 
-    # Define the colors for the test types
+    # Define colors for each series
     colors = {
-        "API": "#7f0000",  # Deep maroon / dark red
-        "UI": "#ff7675",  # Light coral / pastel red
+        "API Failures": "#7f0000",   # Deep maroon / dark red
+        "UI Failures": "#ff7675",    # Light coral / pastel red
+        "Skipped": "#fdcb6e",        # Warm amber
+        "Broken": "#6c5ce7",         # Rich violet
     }
 
-    # We support API and UI; check what types actually exist in failed_df
-    found_types = (
-        failed_df["TEST TYPE"].dropna().unique() if not failed_df.empty else []
-    )
-    # Order them nicely (API first, then UI, then others)
-    test_types = [t for t in ["API", "UI"] if t in found_types]
-    for t in found_types:
-        if t not in test_types:
-            test_types.append(t)
+    # Define the series we want to stack
+    series_definitions = [
+        {
+            "name": "API Failures",
+            "filter": unsuccessful_df["STATUS"].astype(str).str.upper().str.contains("FAIL", na=False) & (unsuccessful_df["TEST TYPE"] == "API")
+        },
+        {
+            "name": "UI Failures",
+            "filter": unsuccessful_df["STATUS"].astype(str).str.upper().str.contains("FAIL", na=False) & (unsuccessful_df["TEST TYPE"] == "UI")
+        },
+        {
+            "name": "Skipped",
+            "filter": unsuccessful_df["STATUS"].astype(str).str.upper().str.contains("SKIP", na=False)
+        },
+        {
+            "name": "Broken",
+            "filter": unsuccessful_df["STATUS"].astype(str).str.upper().str.contains("BROKEN", na=False)
+        }
+    ]
 
-    # If there are no failures at all, we still show the unique dates on the x-axis with 0 counts
-    if failed_df.empty or len(test_types) == 0:
+    # Handle other failure types if they exist (e.g. UNKNOWN)
+    failed_others = unsuccessful_df[
+        unsuccessful_df["STATUS"].astype(str).str.upper().str.contains("FAIL", na=False)
+        & (~unsuccessful_df["TEST TYPE"].isin(["API", "UI"]))
+    ]
+    if not failed_others.empty:
+        for other_type in failed_others["TEST TYPE"].dropna().unique():
+            series_definitions.append({
+                "name": f"{other_type} Failures",
+                "filter": unsuccessful_df["STATUS"].astype(str).str.upper().str.contains("FAIL", na=False) & (unsuccessful_df["TEST TYPE"] == other_type)
+            })
+
+    # If there are no unsuccessful tests, show unique dates on the x-axis with 0 counts
+    if unsuccessful_df.empty:
         fig.add_trace(
             go.Bar(
                 x=unique_dates,
@@ -383,15 +406,21 @@ def build_failed_chart(df: pd.DataFrame) -> go.Figure:
             )
         )
     else:
-        for ttype in test_types:
-            type_df = failed_df[failed_df["TEST TYPE"] == ttype]
-            type_counts = type_df.groupby("DATE").size()
-            y_values = [type_counts.get(d, 0) for d in unique_dates]
+        for s in series_definitions:
+            series_df = unsuccessful_df[s["filter"]]
+            series_counts = series_df.groupby("DATE").size()
+            y_values = [series_counts.get(d, 0) for d in unique_dates]
 
-            # Show text label inside/outside the bar segment if it is non-zero
+            # Only add the trace if there is at least one day with > 0 occurrences
+            # or if it's one of the main 4 series to keep the legend consistent
+            if sum(y_values) == 0 and s["name"] not in ["API Failures", "UI Failures", "Skipped", "Broken"]:
+                continue
+
             text_values = [str(val) if val > 0 else "" for val in y_values]
+            color_val = colors.get(s["name"], "#b2bec3")
 
-            color_val = colors.get(ttype, "#b2bec3")
+            # Label text color: white for dark colors, dark grey for light/bright colors (like Skipped/UI Failures)
+            text_color = "white" if s["name"] in ["API Failures", "Broken"] else "#2d3436"
 
             fig.add_trace(
                 go.Bar(
@@ -399,14 +428,12 @@ def build_failed_chart(df: pd.DataFrame) -> go.Figure:
                     y=y_values,
                     text=text_values,
                     textposition="auto",
-                    textfont=dict(
-                        size=12, color="white" if ttype in colors else "#2d3436"
-                    ),
+                    textfont=dict(size=12, color=text_color),
                     marker=dict(color=color_val),
-                    name=f"{ttype} Failures",
+                    name=s["name"],
                     hovertemplate=(
                         f"<span style='font-size: 14px; font-weight: bold; color: {color_val};'>%{{x}}</span><br>"
-                        f"<span style='color: #94a3b8;'>{ttype} Failed:</span> <b>%{{y:,}}</b><extra></extra>"
+                        f"<span style='color: #94a3b8;'>{s['name']}:</span> <b>%{{y:,}}</b><extra></extra>"
                     ),
                 )
             )
@@ -428,10 +455,10 @@ def build_failed_chart(df: pd.DataFrame) -> go.Figure:
 
     fig = _apply_base_layout(
         fig,
-        title=dict(text="Failed Tests Per Day", font=dict(size=16)),
+        title=dict(text="Failed, Skipped & Broken Tests Per Day", font=dict(size=16)),
         height=CHART_HEIGHT_MEDIUM,
         xaxis=dict(title="Date", tickfont=dict(size=11)),
-        yaxis=dict(title="Failed Count", gridcolor="#f1f2f6"),
+        yaxis=dict(title="Count", gridcolor="#f1f2f6"),
         barmode="stack",
         showlegend=True,
         legend=dict(
