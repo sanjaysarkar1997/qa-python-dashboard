@@ -107,10 +107,11 @@ def load_data():
 
     df["DURATION (S)"] = pd.to_numeric(df["DURATION (S)"], errors="coerce")
 
-    bins = [0, 10, 20, 30, 40, 50, 60, 100000]
+    bins = [0, 5, 10, 20, 30, 40, 50, 60, 100000]
 
     labels = [
-        "0-10 Seconds",
+        "0-5 Seconds",
+        "5-10 Seconds",
         "10-20 Seconds",
         "20-30 Seconds",
         "30-40 Seconds",

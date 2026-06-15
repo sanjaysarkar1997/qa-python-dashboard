@@ -140,9 +140,10 @@ PLOTLY_TEMPLATE = "plotly_white"
 # ------------------------------------------------------------------
 # Tests are grouped by how long they took (in seconds).
 # Add more ranges here if needed — just add to both lists.
-DURATION_BINS = [0, 10, 20, 30, 40, 50, 60, 100_000]
+DURATION_BINS = [0, 5, 10, 20, 30, 40, 50, 60, 100_000]
 DURATION_LABELS = [
-    "0–10 s",
+    "0–5 s",
+    "5–10 s",
     "10–20 s",
     "20–30 s",
     "30–40 s",
