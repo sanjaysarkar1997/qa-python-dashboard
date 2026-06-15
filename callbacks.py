@@ -675,10 +675,11 @@ def register(app) -> None:
         ],
         [
             Input("selected_date", "date"),
+            Input("target_env", "value"),
         ],
     )
-    def update_dashboard(selected_date):
-        df = load_all_reports()
+    def update_dashboard(selected_date, target_env):
+        df = load_all_reports(target_env)
 
         if not selected_date:
             selected_date = str(date.today())
@@ -734,13 +735,14 @@ def register(app) -> None:
         [
             Input("active_table_type", "data"),
             Input("selected_date", "date"),
+            Input("target_env", "value"),
         ],
     )
-    def show_table(active_table, selected_date):
+    def show_table(active_table, selected_date, target_env):
         if not active_table:
             return ""
 
-        df = load_all_reports()
+        df = load_all_reports(target_env)
 
         if not selected_date:
             selected_date = str(date.today())

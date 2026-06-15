@@ -411,7 +411,36 @@ def create_layout(df: pd.DataFrame) -> html.Div:
                                 style={"width": "100%"},
                             ),
                         ],
-                        style={"flex": "1"},
+                        style={"flex": "1", "minWidth": "200px"},
+                    ),
+                    # Target Environment Selection
+                    html.Div(
+                        [
+                            html.Label(
+                                "TARGET ENVIRONMENT",
+                                style={
+                                    "fontSize": "11px",
+                                    "fontWeight": "700",
+                                    "letterSpacing": "1.5px",
+                                    "color": "#636e72",
+                                    "marginBottom": "8px",
+                                    "display": "block",
+                                    "fontFamily": FONT_FAMILY,
+                                },
+                            ),
+                            dcc.Dropdown(
+                                id="target_env",
+                                options=[
+                                    {"label": "Dev / Local", "value": "dev"},
+                                    {"label": "Quality (QA)", "value": "quality"},
+                                    {"label": "Production", "value": "production"},
+                                ],
+                                value="dev",
+                                clearable=False,
+                                style={"width": "100%", "fontFamily": FONT_FAMILY},
+                            ),
+                        ],
+                        style={"flex": "1", "minWidth": "200px"},
                     ),
                 ],
                 style={

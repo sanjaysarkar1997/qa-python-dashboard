@@ -48,45 +48,28 @@ EMOJI_STATUS_MAP = {
 }
 
 
-def _discover_csv_files() -> list[str]:
+def _discover_csv_files(folder: str) -> list[str]:
     """
-    Scan the `reports/` folder and return a sorted list of CSV file paths.
-
-    Why auto-discover?
-    ------------------
-    Hardcoding filenames means someone has to edit the code every time
-    a new daily report is added.  Auto-discovery picks up any file that
-    matches `reports/test-summary-*.csv` automatically.
+    Scan the specified environment subfolder and return a sorted list of CSV file paths.
 
     Returns
     -------
     list[str]
         Absolute paths to every CSV found in the reports folder.
-
-    Raises
-    ------
-    FileNotFoundError
-        If the `reports/` folder does not exist.
-    RuntimeError
-        If no CSV files are found inside the folder.
     """
-    if not os.path.isdir(REPORTS_FOLDER):
-        raise FileNotFoundError(
-            f"Reports folder not found: '{REPORTS_FOLDER}'\n"
-            "Please create it and place your CSV files inside."
-        )
+    if not os.path.isdir(folder):
+        print(f"[data_loader] Folder not found: '{folder}'")
+        return []
 
     # Match ALL .csv files in the folder (case-insensitive extension)
-    pattern = os.path.join(REPORTS_FOLDER, "*.csv")
+    pattern = os.path.join(folder, "*.csv")
     files = sorted(glob.glob(pattern))
 
     if not files:
-        raise RuntimeError(
-            f"No CSV files found in '{REPORTS_FOLDER}'.\n"
-            "Drop your test-summary CSV files there and restart the app."
-        )
+        print(f"[data_loader] No CSV files found in '{folder}'.")
+        return []
 
-    print(f"[data_loader] Found {len(files)} CSV file(s):")
+    print(f"[data_loader] Found {len(files)} CSV file(s) in {os.path.basename(folder)}:")
     for f in files:
         print(f"   • {os.path.basename(f)}")
 
@@ -305,36 +288,20 @@ def _clean_duration(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def load_all_reports() -> pd.DataFrame:
+def load_all_reports(env: str = "dev") -> pd.DataFrame:
     """
-    Main entry point — load, merge, and clean all CSV reports.
+    Main entry point — load, merge, and clean all CSV reports for the target environment folder.
 
     This function:
-      1. Discovers all CSV files in the `reports/` folder
+      1. Discovers all CSV files in the `reports/<env>` folder
       2. Loads and concatenates them into one DataFrame
       3. Adds missing columns (for older CSV formats)
       4. Cleans dates, statuses, durations
       5. Deduplicates: keeps the latest run per (TEST ID, DATE)
       6. Returns the final clean DataFrame
-
-    Why deduplicate?
-    ----------------
-    If tests run past midnight (e.g. triggered on Jun 12 at 1 AM but
-    finishing on Jun 13), the CSV is written with yesterday's filename
-    (test-summary-2026-06-12.csv) but every START TIME timestamp is
-    Jun 13.  When all CSVs are concatenated, those rows appear under
-    Jun 13 alongside today's full run — causing inflated totals.
-
-    Deduplicating by (TEST ID, DATE) using the latest START TIME keeps
-    only the most recent execution of each test per calendar day, which
-    is always the correct and intended view.
-
-    Returns
-    -------
-    pd.DataFrame
-        A clean, deduplicated, analysis-ready DataFrame.
     """
-    csv_files = _discover_csv_files()
+    env_folder = os.path.join(REPORTS_FOLDER, env.lower())
+    csv_files = _discover_csv_files(env_folder)
 
     # Load each CSV and store in a list
     frames = []
@@ -350,7 +317,15 @@ def load_all_reports() -> pd.DataFrame:
             print(f"[data_loader]   ⚠ Skipped {os.path.basename(path)}: {exc}")
 
     if not frames:
-        raise RuntimeError("No data could be loaded. Check your CSV files.")
+        print(f"[data_loader] No data could be loaded for environment '{env}'. Returning empty DataFrame.")
+        # Return an empty DataFrame with all expected columns to avoid crashes in downstream code
+        empty_cols = [
+            "DATE", "TEST ID", "TEST TYPE", "SUB TYPE", "TEST NAME", "STATUS",
+            "EXPECTED VS GOT", "DURATION (S)", "MONITOR STATUS", "FAILURE ROOT CAUSE",
+            "FAILED ENDPOINT", "SERVER ERROR MESSAGE", "FAILED STEP", "SOURCE LOCATION",
+            "CREATED AT", "UPDATED AT", "UPDATED DATE", "DURATION GROUP", "ENV", "MOD"
+        ]
+        return pd.DataFrame(columns=empty_cols)
 
     # Stack all frames into one big DataFrame
     df = pd.concat(frames, ignore_index=True)
