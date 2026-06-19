@@ -18,3 +18,6 @@ __pycache__/
 # Environment variables — contains secrets / local paths
 # .env.example is safe to commit (no real values), .env is NOT
 .env
+
+
+reports/**
